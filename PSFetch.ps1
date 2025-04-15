@@ -25,8 +25,7 @@ $logo=@"
     #OPERTAING SYSTEM
     $os = Get-CimInstance Win32_OperatingSystem
     #CPU
-    $cpu = Get-CimInstance Win32_Processor
-    $cpuClockSpeed = ($cpu.MaxClockSpeed)/1000 
+    $cpu = Get-CimInstance Win32_Processor | Select-Object Name, MaxClockSpeed
     #MEMORY [RAM]
     $memory = Get-CimInstance Win32_PhysicalMemory
     $totalMemory = ($memory | Measure-Object -Property Capacity -Sum).Sum / 1GB
@@ -45,18 +44,28 @@ $logo=@"
         "OS: $($os.Caption) [$($os.Version)]"
         "Hostname: $($env:COMPUTERNAME)"
         "Uptime: $($uptime.Days)d $($uptime.Hours)h $($uptime.Minutes)m"
-        "CPU: $($cpu.Name) [$($cpuClockSpeed)GHz]"
+        "CPU: $($cpu.Name) [$(($cpu.MaxClockSpeed)/1000)GHz]"
         "Memory [RAM]: {0:N1}GB / {1:N1}GB" -f $usedMemory, $totalMemory
         "Storage [C]: {0:N1}GB / {1:N1}GB" -f $usedStorage, $totalStorage
         "PowerShell: $($PSVersionTable.PSVersion)"
     )
 
-    $color = "Blue"
+    $colors = @{
+      blue = "Blue"
+      pink = $PSStyle.Foreground.FromRgb(0xFF0054)
+    } 
+
     $line_num = 0
     foreach ($line in $logo) {
-      Write-Host -NoNewline -ForegroundColor $color $line
+      Write-Host -NoNewline -ForegroundColor $colors.blue $line
       if($line_num -lt $info.Count){
-        Write-Host -NoNewline ((" " * 3) + ($info[$line_num++])) 
+        $text = $info[$line_num++]
+        $parts = $text -split ":", 2
+        $label = $parts[0] + ":"
+        $value = $parts[1] 
+        Write-Host -NoNewline (" " * 3)
+        Write-Host -NoNewline "$($colors.pink) $label $($PSStyle.Reset)"
+        Write-Host -NoNewline $value
       }     
     }
 }
