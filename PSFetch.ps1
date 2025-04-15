@@ -1,6 +1,15 @@
 function Invoke-PSFetch {
-$logo=@"
-                          ....iilll
+
+  function Print-NoNewLine{
+    param($Line, $Color)
+    if($Color){
+      return Write-Host -NoNewline "$($Color) $Line $($PSStyle.Reset)"
+    }
+    return Write-Host -NoNewline $Line
+  }
+
+  $logo=@"
+                         ....iiilll
                  ....iilllllllllllllN
      ....iillll  lllllllllllllllllllN
  iillllllllllll  lllllllllllllllllllN
@@ -51,21 +60,25 @@ $logo=@"
     )
 
     $colors = @{
-      blue = "Blue"
-      pink = $PSStyle.Foreground.FromRgb(0xFF0054)
+      blue = $PSStyle.Foreground.FromRgb(0x0000FF) 
+      green = $PSStyle.Foreground.FromRgb(0x00FF00)
+      yellow = $PSStyle.Foreground.FromRgb(0xFFFF00) 
+      red = $PSStyle.Foreground.FromRgb(0xFF0000) 
     } 
 
     $line_num = 0
     foreach ($line in $logo) {
-      Write-Host -NoNewline -ForegroundColor $colors.blue $line
+      Print-NoNewLine -Line $line -Color $colors.blue
+
       if($line_num -lt $info.Count){
         $text = $info[$line_num++]
         $parts = $text -split ":", 2
         $label = $parts[0] + ":"
         $value = $parts[1] 
-        Write-Host -NoNewline (" " * 3)
-        Write-Host -NoNewline "$($colors.pink) $label $($PSStyle.Reset)"
-        Write-Host -NoNewline $value
+
+        Print-NoNewLine -Line (" " * 3)
+        Print-NoNewLine -Line $label -Color $colors.green
+        Print-NoNewLine -Line $value
       }     
     }
 }
