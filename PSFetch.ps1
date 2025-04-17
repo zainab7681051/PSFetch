@@ -1,36 +1,31 @@
-function Start-PSFetch {
-  param ([switch][alias("nc")]$NoLogoColor)
+#fhnction Start-PSFetch {
+  param (
+  [switch][alias("nc")]$NoLogoColor,
+  [switch][alias("m")]$MonoColor,
+  [string][alias("c")]$MyColor = "#FFFFFF",
+  [string[]][alias("cs")]$MyColors 
+  )
 
-  if (-not ($IsWindows -or $PSVersionTable.PSVersion.Major -eq 5)) {
-      Write-Error "Only supported on Windows with PowerShell version >= 5"
+  if (-not $iswindows) {
+          write-host -foreground "Red" "ONLY SUPPORTED ON WINDOWS OPERTAING SYSTEM"
+          exit 1
+  }
+  #OPERTAING SYSTEM
+  $os = Get-CimInstance Win32_OperatingSystem
+  $osName = $os.Caption
+  $osVersion = $os.Version
+  if ($osVersion -cnotlike "10.*") {
+      write-host -foreground "Red" "ONLY SUPPORTED ON WINDOWS 10"
       exit 1
   }
-
- $logo=@"
-               cc        ....iiilllN
-               cc....iilllllllllllllN
-     ....iillllcclllllllllllllllllllN
- iillllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
-               cc                   N
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- ''llllllllllllcclllllllllllllllllllN
-       ''''llllcc''lllllllllllllllllN
-               cc     ''''''^^^^llllN
-"@ -split "N"
-
-    #HARDWARE
+  $psVersion = $PSVersionTable.PSVersion
+  if ($psVersion -lt [System.Version]"7.2"){
+      write-host -foreground "Red" "ONLY SUPPORTED FOR POWERSHELL VERSION >= 7.2"
+      exit 1
+  }
+   #HARDWARE
     $computer = Get-CimInstance Win32_ComputerSystem | Select-Object Manufacturer, Model
-    #OPERTAING SYSTEM
-    $os = Get-CimInstance Win32_OperatingSystem
+
     #CPU
     $cpu = Get-CimInstance Win32_Processor | Select-Object Name, MaxClockSpeed
     #GRAPHICS CARD
@@ -53,16 +48,37 @@ function Start-PSFetch {
     $info = @(
         "Hostname: $($env:COMPUTERNAME)"
         "PC: $($computer.Manufacturer) [$($computer.Model)]"
-        "OS: $($os.Caption) [$($os.Version)]"
+        "OS: $osName [$osVersion]"
         "CPU: $($cpu.Name) [$(($cpu.MaxClockSpeed)/1000)GHz]"
         "GPU: $($gpu)"
         "Resolution: $($resolution)"
         "Memory [RAM]: {0:N1}GB / {1:N1}GB" -f $usedMemory, $totalMemory
         "Storage [C]: {0:N1}GB / {1:N1}GB" -f $usedStorage, $totalStorage
-        "PowerShell: $($PSVersionTable.PSVersion)"
+        "PowerShell: $psVersion"
         "Uptime: $($uptime.Days)d $($uptime.Hours)h $($uptime.Minutes)m"
     )
+ $logo=@"
+               cc        ....iiilllN
+               cc....iilllllllllllllN
+     ....iillllcclllllllllllllllllllN
+ iillllllllllllcclllllllllllllllllllN
+ llllllllllllllcclllllllllllllllllllN
+ llllllllllllllcclllllllllllllllllllN
+ llllllllllllllcclllllllllllllllllllN
+ llllllllllllllcclllllllllllllllllllN
+ llllllllllllllcclllllllllllllllllllN
+               cc                   N
+ llllllllllllllcclllllllllllllllllllN
+ llllllllllllllcclllllllllllllllllllN
+ llllllllllllllcclllllllllllllllllllN
+ llllllllllllllcclllllllllllllllllllN
+ llllllllllllllcclllllllllllllllllllN
+ ''llllllllllllcclllllllllllllllllllN
+       ''''llllcc''lllllllllllllllllN
+               cc     ''''''^^^^llllN
+"@ -split "N"
 
+ 
     function Print-NoNewLine{
       param([string] $Text, [string] $Color)
       if($Color){
@@ -73,19 +89,44 @@ function Start-PSFetch {
 
     function Set-HexColor{
       param([string] $Hex)
-      if($Hex){
-        $PSStyle.Foreground.FromRgb(($Hex -replace "#", "0x"))
+
+      if([System.String]::IsNullOrEmpty($Hex)){
+        Write-Host -Foreground "Red" "HEX VALUE FOR COLOR MUST BE PROVIDED."
+        exit 1
+       }
+
+      switch($Hex[0]){
+        "#" {
+          $PSStyle.Foreground.FromRgb(($Hex -replace "#", "0x"))
+        }
+        "0"{
+          if($Hex[1] -cne "x"){
+            Write-Host -Foreground "Red" "MISSING 'x' SYMBOL AFTER '0' IN HEX COLOR: $Hex"
+            exit 1
+          }
+          $PSStyle.Foreground.FromRgb($Hex)
+        }
+        default {
+          Write-Host -Foreground "Red" "INCORRECT FORMAT FOR HEX COLOR: $Hex"
+          Write-Host -Foreground "Red" "CORRECT FORMATS ARE: "
+          Write-Host -NoNewline -Foreground "Yellow" "#FFFFFF or 0xFFFFFF"
+          exit 1
+        }
       }
     }
 
-    function Print-ColoredLogo{
-      param([string] $Line, [int] $Index)
-
+    function Print-MultiColors{
+      param([string]$Line, [int]$Index, [string[]]$MColors)
+      
+      if($MColors.Length -lt 4){
+          Write-Host -Foreground "Red" "MUST PROVIDE A SET OF 4 COLORS"
+          exit 1
+      }
       $colors = @{
-        topLeft = Set-HexColor -Hex "#D11141"
-        topRight = Set-HexColor -Hex "#00B159"
-        bottomLeft = Set-HexColor -Hex "#00AEDB"
-        bottomRight =Set-HexColor -Hex "#FFC425"
+        topLeft = Set-HexColor -Hex $MColors[0]   
+        topRight = Set-HexColor -Hex $MColors[1]  
+        bottomLeft = Set-HexColor -Hex $MColors[2] 
+        bottomRight =Set-HexColor -Hex $MColors[3]
       }
 
       $LineParts = $Line -split "cc", 2
@@ -100,18 +141,35 @@ function Start-PSFetch {
       }
     }
 
-    function Print-ColorelessLogo{
-      param([string] $Line)
-      Print-NoNewLine -Text ($Line -replace "cc","  ") -Color (Set-HexColor -Hex "#FFFFFF")
+    function Print-SingleColor{
+      param([string]$Line, [string]$SingleColor)
+      Print-NoNewLine -Text ($Line -replace "cc","  ") -Color (Set-HexColor -Hex $SingleColor)
     }
-
+    
+    function Print-NewLine{
+      Write-Host ""
+    }
+    
+    Print-NewLine
     $info_indx = 0
     for ($i=0; $i -lt $logo.Count; $i++) {
+
       if(-not $NoLogoColor) {
-        Print-ColoredLogo -Line $logo[$i] -Index $i
+        if($MonoColor){
+          Print-SingleColor -Line $logo[$i] -SingleColor $MyColor
+        }
+        else{
+          if($MyColors){
+            Print-MultiColors -Line $logo[$i] -Index $i -MColors $MyColors
+          }
+          else{
+            $DefaultColors = "#D11141", "#00B159", "#24A2E9", "#FFC425"
+            Print-MultiColors -Line $logo[$i] -Index $i -MColors $DefaultColors
+          }
+        }
       } 
       else{
-        Print-ColorelessLogo -Line $logo[$i]
+        Print-SingleColor -Line $logo[$i] -SingleColor "#CCCCCC"
       }
 
       if($info_indx -lt $info.Count){
@@ -124,4 +182,6 @@ function Start-PSFetch {
         Print-NoNewLine -Text $value
       }     
     }
-}
+    Print-NewLine
+    Print-NewLine
+#}
