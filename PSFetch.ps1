@@ -1,6 +1,11 @@
-function Invoke-PSFetch {
-  param([boolean]$ColoredLogo = $True)
- 
+function Start-PSFetch {
+  param ([switch][alias("nc")]$NoLogoColor)
+
+  if (-not ($IsWindows -or $PSVersionTable.PSVersion.Major -eq 5)) {
+      Write-Error "Only supported on Windows with PowerShell version >= 5"
+      exit 1
+  }
+
  $logo=@"
                cc        ....iiilllN
                cc....iilllllllllllllN
@@ -59,47 +64,54 @@ function Invoke-PSFetch {
     )
 
     function Print-NoNewLine{
-      param($Text, $Color)
+      param([string] $Text, [string] $Color)
       if($Color){
         return Write-Host -NoNewline "$($Color) $Text $($PSStyle.Reset)"
       }
       return Write-Host -NoNewline $Text
     }
 
+    function Set-HexColor{
+      param([string] $Hex)
+      if($Hex){
+        $PSStyle.Foreground.FromRgb(($Hex -replace "#", "0x"))
+      }
+    }
+
     function Print-ColoredLogo{
-      param([string] $Line, [int] $i)
+      param([string] $Line, [int] $Index)
 
       $colors = @{
-        blue = $PSStyle.Foreground.FromRgb(0x00aedb) 
-        green = $PSStyle.Foreground.FromRgb(0x00b159)
-        yellow = $PSStyle.Foreground.FromRgb(0xffc425) 
-        red = $PSStyle.Foreground.FromRgb(0xd11141) 
+        topLeft = Set-HexColor -Hex "#D11141"
+        topRight = Set-HexColor -Hex "#00B159"
+        bottomLeft = Set-HexColor -Hex "#00AEDB"
+        bottomRight =Set-HexColor -Hex "#FFC425"
       }
 
       $LineParts = $Line -split "cc", 2
   
-      if($i -ge ($logo.Count)/2){
-        Print-NoNewLine -Text $LineParts[0] -Color $colors.blue
-        Print-NoNewLine -Text $LineParts[1] -Color $colors.yellow
+      if($Index -ge ($logo.Count)/2){
+        Print-NoNewLine -Text $LineParts[0] -Color $colors.bottomLeft
+        Print-NoNewLine -Text $LineParts[1] -Color $colors.bottomRight
       }
       else {
-        Print-NoNewLine -Text $LineParts[0] -Color $colors.red 
-        Print-NoNewLine -Text $LineParts[1] -Color $colors.green
+        Print-NoNewLine -Text $LineParts[0] -Color $colors.topLeft 
+        Print-NoNewLine -Text $LineParts[1] -Color $colors.topRight
       }
     }
 
     function Print-ColorelessLogo{
       param([string] $Line)
-      Print-NoNewLine -Text $Line
+      Print-NoNewLine -Text ($Line -replace "cc","  ") -Color (Set-HexColor -Hex "#FFFFFF")
     }
 
     $info_indx = 0
     for ($i=0; $i -lt $logo.Count; $i++) {
-      if($ColoredLogo) {
-        Print-ColoredLogo($logo[$i], $i)
+      if(-not $NoLogoColor) {
+        Print-ColoredLogo -Line $logo[$i] -Index $i
       } 
       else{
-        Print-ColorelessLogo($logo[$i])
+        Print-ColorelessLogo -Line $logo[$i]
       }
 
       if($info_indx -lt $info.Count){
@@ -108,15 +120,8 @@ function Invoke-PSFetch {
         $label = $parts[0] + ":"
         $value = $parts[1] 
 
-        Print-NoNewLine -Text $label -Color $colors.blue
+        Print-NoNewLine -Text $label -Color (Set-HexColor -Hex "#00FFFF")
         Print-NoNewLine -Text $value
       }     
     }
 }
-
-if (-not ($IsWindows -or $PSVersionTable.PSVersion.Major -eq 5)) {
-    Write-Error "Only supported on Windows with PowerShell version >= 5"
-    exit 1
-}
-
-Invoke-PSFetch
