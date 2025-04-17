@@ -1,14 +1,7 @@
 function Invoke-PSFetch {
-
-  function Print-NoNewLine{
-    param($Text, $Color)
-    if($Color){
-      return Write-Host -NoNewline "$($Color) $Text $($PSStyle.Reset)"
-    }
-    return Write-Host -NoNewline $Text
-  }
-
-  $logo=@"
+  param([boolean]$ColoredLogo = $True)
+ 
+ $logo=@"
                cc        ....iiilllN
                cc....iilllllllllllllN
      ....iillllcclllllllllllllllllllN
@@ -37,7 +30,7 @@ function Invoke-PSFetch {
     $cpu = Get-CimInstance Win32_Processor | Select-Object Name, MaxClockSpeed
     #GRAPHICS CARD
     $videoController = Get-CimInstance Win32_VideoController | Select-Object Caption, CurrentHorizontalResolution, CurrentVerticalResolution
-    $gCard = $videoController.Caption
+    $gpu = $videoController.Caption
     #MEMORY [RAM]
     $memory = Get-CimInstance Win32_PhysicalMemory
     $totalMemory = ($memory | Measure-Object -Property Capacity -Sum).Sum / 1GB
@@ -53,11 +46,11 @@ function Invoke-PSFetch {
     $uptime = (Get-Date) - $os.LastBootUpTime
 
     $info = @(
+        "Hostname: $($env:COMPUTERNAME)"
         "PC: $($computer.Manufacturer) [$($computer.Model)]"
         "OS: $($os.Caption) [$($os.Version)]"
-        "Hostname: $($env:COMPUTERNAME)"
         "CPU: $($cpu.Name) [$(($cpu.MaxClockSpeed)/1000)GHz]"
-        "Grahics card: $($gCard)"
+        "GPU: $($gpu)"
         "Resolution: $($resolution)"
         "Memory [RAM]: {0:N1}GB / {1:N1}GB" -f $usedMemory, $totalMemory
         "Storage [C]: {0:N1}GB / {1:N1}GB" -f $usedStorage, $totalStorage
@@ -65,25 +58,48 @@ function Invoke-PSFetch {
         "Uptime: $($uptime.Days)d $($uptime.Hours)h $($uptime.Minutes)m"
     )
 
-    $colors = @{
-      blue = $PSStyle.Foreground.FromRgb(0x00aedb) 
-      green = $PSStyle.Foreground.FromRgb(0x00b159)
-      yellow = $PSStyle.Foreground.FromRgb(0xffc425) 
-      red = $PSStyle.Foreground.FromRgb(0xd11141) 
-    } 
+    function Print-NoNewLine{
+      param($Text, $Color)
+      if($Color){
+        return Write-Host -NoNewline "$($Color) $Text $($PSStyle.Reset)"
+      }
+      return Write-Host -NoNewline $Text
+    }
 
-    $info_indx = 0
-    $line_indx = 0
-    foreach ($line in $logo) {
-      $lineParts = $line -split "cc", 2
+    function Print-ColoredLogo{
+      param([string] $Line, [int] $i)
 
-      if(($line_indx++) -ge ($logo.Count)/2){
-        Print-NoNewLine -Text $lineParts[0] -Color $colors.blue
-        Print-NoNewLine -Text $lineParts[1] -Color $colors.yellow
+      $colors = @{
+        blue = $PSStyle.Foreground.FromRgb(0x00aedb) 
+        green = $PSStyle.Foreground.FromRgb(0x00b159)
+        yellow = $PSStyle.Foreground.FromRgb(0xffc425) 
+        red = $PSStyle.Foreground.FromRgb(0xd11141) 
+      }
+
+      $LineParts = $Line -split "cc", 2
+  
+      if($i -ge ($logo.Count)/2){
+        Print-NoNewLine -Text $LineParts[0] -Color $colors.blue
+        Print-NoNewLine -Text $LineParts[1] -Color $colors.yellow
       }
       else {
-        Print-NoNewLine -Text $lineParts[0] -Color $colors.red 
-        Print-NoNewLine -Text $lineParts[1] -Color $colors.green
+        Print-NoNewLine -Text $LineParts[0] -Color $colors.red 
+        Print-NoNewLine -Text $LineParts[1] -Color $colors.green
+      }
+    }
+
+    function Print-ColorelessLogo{
+      param([string] $Line)
+      Print-NoNewLine -Text $Line
+    }
+
+    $info_indx = 0
+    for ($i=0; $i -lt $logo.Count; $i++) {
+      if($ColoredLogo) {
+        Print-ColoredLogo($logo[$i], $i)
+      } 
+      else{
+        Print-ColorelessLogo($logo[$i])
       }
 
       if($info_indx -lt $info.Count){
@@ -98,8 +114,9 @@ function Invoke-PSFetch {
     }
 }
 
-# Invoke-PSFetch
+if (-not ($IsWindows -or $PSVersionTable.PSVersion.Major -eq 5)) {
+    Write-Error "Only supported on Windows with PowerShell version >= 5"
+    exit 1
+}
 
-<#if (($Host.Name -eq 'ConsoleHost' -or $Host.Name -like '*Terminal*') -and -not [System.Console]::IsOutputRedirected) {
-    Invoke-PSFetch
-}#>
+Invoke-PSFetch
