@@ -1,3 +1,73 @@
+
+<#PSScriptInfo
+.VERSION 1.0.0
+.AUTHOR https://github.com/zainab7681051
+.PROJECTURI https://github.com/zainab7681051/PSFetch
+.TAGS infofetch neofetch screenfetch system-info commandline cli powershell
+.LICENSEURI https://github.com/zainab7681051/PSFetch/blob/master/LICENSE
+#>
+
+<#
+.SYNOPSIS
+  PSFetch - Retrieves and displays Windows 10 system information.
+
+.DESCRIPTION
+  PSFetch is a command-line system information utility for Windows 10 written in PowerShell
+
+.PARAMETER NoLogoColor
+   [Alias('nc')]
+   Switch. When specified, displays the ASCII logo in the default console color without any custom coloring.
+
+.PARAMETER MonoColor
+   [Alias('m')]
+   Switch. When specified, displays the ASCII logo using a single custom color provided by –MyColor.
+
+.PARAMETER MyColor
+   [Alias('c')]
+   String. Specifies the hex color code (for example, '#FFFFFF') to use for the mono‑color logo. Defaults to '#FFFFFF'.
+
+.PARAMETER MyColors
+   [Alias('cs')]
+   String[]. Specifies an array of four hex color codes
+   (for example, '#FF0000','#00FF00','#0000FF','#FFFF00')
+   to apply as a gradient across the ASCII logo.
+
+.INPUTS
+   None
+
+.OUTPUTS
+   System.String[]
+
+.EXAMPLE
+   PSFetch
+
+   Retrieves and displays system information with the colored ASCII logo.
+
+.EXAMPLE
+   PSFetch -nc
+
+   Displays system information with the logo in the default console color.
+
+.EXAMPLE
+   PSFetch -m -c '#00FF00'
+
+   Displays system information with the logo in a single green color.
+
+.EXAMPLE
+   PSFetch -cs '#FF0000','#00FF00','#0000FF','#FFFF00'
+
+   Displays system information with a gradient logo spanning red, green, blue, and yellow.
+
+.NOTES
+   Version:        1.0.0
+   Author:         https://github.com/zainab7681051
+   Requires:       PowerShell 7.2+, Windows 10
+
+.LINK
+    https://github.com/zainab7681051/PSFetch
+#>
+
+[CmdletBinding()]
 param (
 [switch][alias("nc")]$NoLogoColor,
 [switch][alias("m")]$MonoColor,
@@ -82,7 +152,7 @@ $logo=@"
  lllllllllllllccllllllllllllllllllN
  ''lllllllllllccllllllllllllllllllN
        ''''lllcc''llllllllllllllllN
-               cc     ''''''^^^^lllN
+               cc     ''''''^^^lllN
 "@ -split "N"
 
 function Print-NoNewLine{
@@ -150,7 +220,12 @@ function Print-MultiColors{
 
 function Print-SingleColor{
   param([string]$Line, [string]$SingleColor)
-  Print-NoNewLine -Text ($Line -replace "cc","  ") -Color (Set-HexColor -Hex $SingleColor)
+  if($SingleColor) {
+    Print-NoNewLine -Text ($Line -replace "cc","  ") -Color (Set-HexColor -Hex $SingleColor)
+  }
+  else{
+    Print-NoNewLine -Text ($Line -replace "cc","  ")
+  }
 }
 
 function Print-NewLine{
@@ -176,7 +251,7 @@ for ($i=0; $i -lt $logo.Count; $i++) {
     }
   } 
   else{
-    Print-SingleColor -Line $logo[$i] -SingleColor "#CCCCCC"
+    Print-SingleColor -Line $logo[$i]
   }
 
   if($info_indx -lt $info.Count){
