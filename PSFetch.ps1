@@ -11,7 +11,8 @@ if (-not $iswindows) {
 }
 
 #OPERTAING SYSTEM
-$os = Get-CimInstance Win32_OperatingSystem
+$session = New-CimSession
+$os = Get-CimInstance Win32_OperatingSystem -Property Caption, Version, TotalVisibleMemorySize, FreePhysicalMemory, LastBootUpTime -CimSession $session 
 $osName = $os.Caption
 $osVersion = $os.Version
 
@@ -27,22 +28,25 @@ if ($psVersion -lt [System.Version]"7.2"){
 }
 
 #HARDWARE
-$computer = Get-CimInstance Win32_ComputerSystem | Select-Object Manufacturer, Model
+$computer = Get-CimInstance Win32_ComputerSystem -Property Manufacturer, Model -CimSession $session 
+
 #CPU
-$cpu = Get-CimInstance Win32_Processor | Select-Object Name, MaxClockSpeed
+$cpu = Get-CimInstance Win32_Processor -Property Name, MaxClockSpeed -CimSession $session 
+
 #GRAPHICS CARD
-$videoController = Get-CimInstance Win32_VideoController | Select-Object Caption, CurrentHorizontalResolution, CurrentVerticalResolution
+$videoController = Get-CimInstance Win32_VideoController -Property Caption, CurrentHorizontalResolution, CurrentVerticalResolution -CimSession $session
 $gpu = $videoController.Caption
+
 #MEMORY [RAM]
-$memory = Get-CimInstance Win32_PhysicalMemory
-$totalMemory = ($memory | Measure-Object -Property Capacity -Sum).Sum / 1GB
-$freeMemory = $os.FreePhysicalMemory / 1MB
-$usedMemory = $totalMemory - $freeMemory
+$usedMemory = ($os.TotalVisibleMemorySize - $os.FreePhysicalMemory) / 1MB
+$totalMemory = [math]::round($os.TotalVisibleMemorySize / 1MB)
+
 #STORAGE [C DRIVE]
-$storage = Get-Volume | Where-Object DriveLetter -ceq "C" | Select-Object DriveLetter, SizeRemaining, Size
-$freeStorage = ($storage.SizeRemaining)/1GB
-$totalStorage = ($storage.size)/1GB
-$usedStorage = $totalStorage - $freeStorage
+$storage = Get-Volume -DriveLetter "C" | Select-Object DriveLetter, SizeRemaining, Size
+$usedStorage = ($storage.size - $storage.SizeRemaining) / 1GB
+$freeStorage = [math]::round($storage.SizeRemaining / 1GB) 
+$totalStorage = [math]::round($storage.size / 1GB)
+
 #ADDITIONAL
 $resolution = "$($videoController.CurrentHorizontalResolution) x $($videoController.CurrentVerticalResolution)"
 $uptime = (Get-Date) - $os.LastBootUpTime
@@ -51,7 +55,7 @@ $info = @(
     "Hostname: $($env:COMPUTERNAME)"
     "PC: $($computer.Manufacturer) [$($computer.Model)]"
     "OS: $osName [$osVersion]"
-    "CPU: $($cpu.Name) [$(($cpu.MaxClockSpeed)/1000)GHz]"
+    "CPU: $($cpu.Name)[$(($cpu.MaxClockSpeed)/1000)GHz]"
     "GPU: $($gpu)"
     "Resolution: $($resolution)"
     "Memory [RAM]: {0:N1}GB / {1:N1}GB" -f $usedMemory, $totalMemory
@@ -61,24 +65,24 @@ $info = @(
 )
 
 $logo=@"
-               cc        ....iiilllN
-               cc....iilllllllllllllN
-     ....iillllcclllllllllllllllllllN
- iillllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
-               cc                   N
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- llllllllllllllcclllllllllllllllllllN
- ''llllllllllllcclllllllllllllllllllN
-       ''''llllcc''lllllllllllllllllN
-               cc     ''''''^^^^llllN
+              cc        ....iiillN
+              cc....iillllllllllllN
+     ....iilllccllllllllllllllllllN
+ iilllllllllllccllllllllllllllllllN
+ lllllllllllllccllllllllllllllllllN
+ lllllllllllllccllllllllllllllllllN
+ lllllllllllllccllllllllllllllllllN
+ lllllllllllllccllllllllllllllllllN
+ lllllllllllllccllllllllllllllllllN
+              cc                  N
+ lllllllllllllccllllllllllllllllllN
+ lllllllllllllccllllllllllllllllllN
+ lllllllllllllccllllllllllllllllllN
+ lllllllllllllccllllllllllllllllllN
+ lllllllllllllccllllllllllllllllllN
+ ''lllllllllllccllllllllllllllllllN
+       ''''lllcc''llllllllllllllllN
+               cc     ''''''^^^^lllN
 "@ -split "N"
 
 function Print-NoNewLine{
@@ -120,10 +124,11 @@ function Set-HexColor{
 function Print-MultiColors{
   param([string]$Line, [int]$Index, [string[]]$MColors)
   
-  if($MColors.Length -lt 4){
+  if($MColors.Length -ne 4){
       Write-Host -Foreground "Red" "MUST PROVIDE A SET OF 4 COLORS"
       exit 1
   }
+
   $colors = @{
     topLeft = Set-HexColor -Hex $MColors[0]   
     topRight = Set-HexColor -Hex $MColors[1]  
@@ -180,7 +185,7 @@ for ($i=0; $i -lt $logo.Count; $i++) {
     $label = $parts[0] + ":"
     $value = $parts[1] 
 
-    Print-NoNewLine -Text $label -Color (Set-HexColor -Hex "#00FFFF")
+    Print-NoNewLine -Text $label -Color (Set-HexColor -Hex "#F6546A")
     Print-NoNewLine -Text $value
   }     
 }
