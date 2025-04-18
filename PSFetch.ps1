@@ -15,64 +15,63 @@
   PSFetch is a command-line system information utility for Windows 10 written in PowerShell
 
 .PARAMETER NoLogoColor
-   [Alias('nc')]
-   Switch. When specified, displays the ASCII logo in the default console color without any custom coloring.
+  When specified, displays the ASCII logo in the default console color without any custom coloring.
 
 .PARAMETER MonoColor
-   [Alias('m')]
-   Switch. When specified, displays the ASCII logo using a single custom color provided by –MyColor.
+  When specified, displays the ASCII logo using a single custom color provided by -MyColor.
 
 .PARAMETER MyColor
-   [Alias('c')]
-   String. Specifies the hex color code (for example, '#FFFFFF') to use for the mono‑color logo. Defaults to '#FFFFFF'.
+  Specifies the hex color code (for example, '#FFFFFF') to use for the mono-color logo. Defaults to '#FFFFFF'.
 
 .PARAMETER MyColors
-   [Alias('cs')]
-   String[]. Specifies an array of four hex color codes
-   (for example, '#FF0000','#00FF00','#0000FF','#FFFF00')
-   to apply as a gradient across the ASCII logo.
+  Specifies an array of four hex color codes
+  (for example, '#FF0000','#00FF00','#0000FF','#FFFF00')
+  to apply as a gradient across the ASCII logo.
 
 .INPUTS
-   None
+  None
 
 .OUTPUTS
-   System.String[]
+  System.String[]
 
 .EXAMPLE
-   PSFetch
+  PSFetch
 
-   Retrieves and displays system information with the colored ASCII logo.
-
-.EXAMPLE
-   PSFetch -nc
-
-   Displays system information with the logo in the default console color.
+  Retrieves and displays system information with the colored ASCII logo.
 
 .EXAMPLE
-   PSFetch -m -c '#00FF00'
+  PSFetch -nc
 
-   Displays system information with the logo in a single green color.
+  Displays system information with the logo in the default console color.
 
 .EXAMPLE
-   PSFetch -cs '#FF0000','#00FF00','#0000FF','#FFFF00'
+  PSFetch -m -c '#00FF00'
 
-   Displays system information with a gradient logo spanning red, green, blue, and yellow.
+  Displays system information with the logo in a single green color.
+
+.EXAMPLE
+  PSFetch -cs '#FF0000','#00FF00','#0000FF','#FFFF00'
+
+  Displays system information with a gradient logo spanning red, green, blue, and yellow.
 
 .NOTES
-   Version:        1.0.0
-   Author:         https://github.com/zainab7681051
-   Requires:       PowerShell 7.2+, Windows 10
+  Version: 1.0.0
+  Author: https://github.com/zainab7681051
+  Requires: PowerShell 7.2+, Windows 10
+  Parameter Rules:
+    - -NoLogoColor, -MonoColor, and -MyColors are mutually exclusive.
+    - If multiple parameters are provided, -NoLogoColor takes precedence.
 
 .LINK
-    https://github.com/zainab7681051/PSFetch
+  https://github.com/zainab7681051/PSFetch
 #>
 
 [CmdletBinding()]
 param (
-[switch][alias("nc")]$NoLogoColor,
-[switch][alias("m")]$MonoColor,
-[string][alias("c")]$MyColor = "#FFFFFF",
-[string[]][alias("cs")]$MyColors 
+[switch][Alias("nc")]$NoLogoColor,
+[switch][Alias("m")]$MonoColor,
+[string][Alias("c")]$MyColor = "#FFFFFF",
+[string[]][Alias("cs")]$MyColors 
 )
 
 if (-not $iswindows) {
